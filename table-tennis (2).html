@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PING PONG</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Teko:wght@300;600&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a1f0a;
+    --line: #1a5a2a;
+    --glow: #00d4ff;
+  }
+
+  body {
+    background: var(--bg);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    overflow: hidden;
+    font-family: 'Share Tech Mono', monospace;
+    color: #fff;
+  }
+
+  h1 {
+    font-family: 'Teko', sans-serif;
+    font-size: 3rem;
+    font-weight: 600;
+    letter-spacing: 0.4em;
+    color: var(--glow);
+    text-shadow: 0 0 20px var(--glow), 0 0 60px var(--glow);
+    margin-bottom: 12px;
+  }
+
+  #scoreboard {
+    display: flex;
+    align-items: center;
+    gap: 40px;
+    margin-bottom: 6px;
+    font-family: 'Teko', sans-serif;
+    font-size: 2.5rem;
+    font-weight: 300;
+  }
+
+  #score-player { color: #00d4ff; text-shadow: 0 0 12px #00d4ff; }
+  #score-ai     { color: #ff4060; text-shadow: 0 0 12px #ff4060; }
+  .sep { color: #333; }
+
+  #game-meta {
+    display: flex;
+    gap: 24px;
+    margin-bottom: 8px;
+    font-size: 0.6rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    opacity: 0.45;
+  }
+
+  #labels {
+    display: flex;
+    justify-content: space-between;
+    width: 700px;
+    font-size: 0.7rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    opacity: 0.5;
+    margin-bottom: 6px;
+  }
+
+  canvas {
+    display: block;
+    border: 1px solid var(--line);
+    box-shadow: 0 0 40px rgba(0,212,255,0.15), 0 0 80px rgba(0,212,255,0.05);
+  }
+
+  #info {
+    margin-top: 14px;
+    font-size: 0.65rem;
+    letter-spacing: 0.18em;
+    opacity: 0.4;
+    text-transform: uppercase;
+  }
+
+  /* ── Overlay ── */
+  #overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(8,22,8,0.94);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+  }
+
+  #overlay h2 {
+    font-family: 'Teko', sans-serif;
+    font-size: 3.5rem;
+    font-weight: 600;
+    letter-spacing: 0.3em;
+    color: var(--glow);
+    text-shadow: 0 0 30px var(--glow);
+    margin-bottom: 6px;
+  }
+
+  .subtitle {
+    font-size: 0.72rem;
+    letter-spacing: 0.2em;
+    opacity: 0.55;
+    margin-bottom: 30px;
+  }
+
+  #result-line {
+    font-size: 0.78rem;
+    letter-spacing: 0.18em;
+    opacity: 0.65;
+    margin-bottom: 24px;
+    min-height: 1.2em;
+  }
+
+  .config-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+
+  .config-label {
+    font-size: 0.6rem;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    opacity: 0.45;
+  }
+
+  .btn-group {
+    display: flex;
+    gap: 8px;
+  }
+
+  .opt-btn {
+    padding: 8px 22px;
+    background: transparent;
+    border: 1px solid #223;
+    color: #556;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.78rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.15s;
+    min-width: 58px;
+  }
+
+  .opt-btn:hover { border-color: #00d4ff; color: #00d4ff; }
+
+  /* Difficulty active states */
+  .opt-btn.diff-easy.active   { background:#00e676; border-color:#00e676; color:#000; box-shadow:0 0 14px rgba(0,230,118,.45); }
+  .opt-btn.diff-easy:hover    { border-color:#00e676; color:#00e676; }
+  .opt-btn.diff-medium.active { background:#ffb300; border-color:#ffb300; color:#000; box-shadow:0 0 14px rgba(255,179,0,.45); }
+  .opt-btn.diff-medium:hover  { border-color:#ffb300; color:#ffb300; }
+  .opt-btn.diff-hard.active   { background:#ff4060; border-color:#ff4060; color:#fff; box-shadow:0 0 14px rgba(255,64,96,.45); }
+  .opt-btn.diff-hard:hover    { border-color:#ff4060; color:#ff4060; }
+
+  /* Points active */
+  .opt-btn.pts-btn.active { background:var(--glow); border-color:var(--glow); color:#000; box-shadow:0 0 14px rgba(0,212,255,.4); }
+
+  .divider {
+    width: 300px;
+    height: 1px;
+    background: linear-gradient(90deg,transparent,#1a5a2a,transparent);
+    margin: 4px 0 22px;
+  }
+
+  #start-btn {
+    margin-top: 8px;
+    padding: 13px 52px;
+    background: transparent;
+    border: 1px solid var(--glow);
+    color: var(--glow);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.95rem;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 0 20px rgba(0,212,255,0.2);
+  }
+
+  #start-btn:hover {
+    background: var(--glow);
+    color: var(--bg);
+    box-shadow: 0 0 40px rgba(0,212,255,0.5);
+  }
+  /* ── Floating emojis ── */
+  .floaty {
+    position: fixed;
+    font-size: 1.6rem;
+    pointer-events: none;
+    user-select: none;
+    animation: float 6s ease-in-out infinite;
+    opacity: 0.55;
+    z-index: 1;
+  }
+  @keyframes float {
+    0%,100% { transform: translateY(0) rotate(-5deg); }
+    50%      { transform: translateY(-14px) rotate(5deg); }
+  }
+</style>
+</head>
+<body>
+
+<!-- Floating emojis around the page -->
+<span class="floaty" style="top:6%;  left:4%;  animation-delay:0s;   font-size:2rem">🏓</span>
+<span class="floaty" style="top:18%; left:1%;  animation-delay:1.2s; font-size:1.3rem">⚡</span>
+<span class="floaty" style="top:72%; left:2%;  animation-delay:0.5s; font-size:1.5rem">🎮</span>
+<span class="floaty" style="top:88%; left:5%;  animation-delay:2.1s; font-size:1.4rem">🏆</span>
+<span class="floaty" style="top:8%;  right:4%; animation-delay:0.8s; font-size:2rem">🏓</span>
+<span class="floaty" style="top:30%; right:1%; animation-delay:1.8s; font-size:1.3rem">🔥</span>
+<span class="floaty" style="top:60%; right:3%; animation-delay:0.3s; font-size:1.5rem">😤</span>
+<span class="floaty" style="top:85%; right:5%; animation-delay:2.5s; font-size:1.4rem">💥</span>
+<span class="floaty" style="top:50%; left:0%;  animation-delay:3s;   font-size:1.2rem">⭐</span>
+<span class="floaty" style="top:45%; right:0%; animation-delay:1.5s; font-size:1.2rem">✨</span>
+
+<h1>🏓 Ping Pong 🏓</h1>
+<div id="scoreboard">
+  <span id="score-player">0</span>
+  <span class="sep">/</span>
+  <span id="score-ai">0</span>
+</div>
+<div id="game-meta">
+  <span id="meta-diff">—</span>
+  <span>·</span>
+  <span id="meta-pts">first to — pts</span>
+</div>
+<div id="labels">
+  <span>🎮 ← You</span>
+  <span>Computer → 🤖</span>
+</div>
+<canvas id="c" width="700" height="450"></canvas>
+<div id="info">⬆️ ⬇️ Arrow Keys to move &nbsp;·&nbsp; 🏆 First to score wins</div>
+
+<div id="overlay">
+  <h2>🏓 PING PONG 🏓</h2>
+  <p class="subtitle">⬆️ ⬇️ arrow keys to move your paddle</p>
+
+  <div id="result-line"></div>
+
+  <div class="config-section">
+    <div class="config-label">⚡ Difficulty</div>
+    <div class="btn-group" id="diff-group">
+      <button class="opt-btn diff-easy active" data-diff="easy">Easy</button>
+      <button class="opt-btn diff-medium"      data-diff="medium">Medium</button>
+      <button class="opt-btn diff-hard"        data-diff="hard">Hard</button>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="config-section">
+    <div class="config-label">🏆 Points to Win</div>
+    <div class="btn-group" id="pts-group">
+      <button class="opt-btn pts-btn"       data-pts="3">3</button>
+      <button class="opt-btn pts-btn"       data-pts="5">5</button>
+      <button class="opt-btn pts-btn active" data-pts="7">7</button>
+      <button class="opt-btn pts-btn"       data-pts="11">11</button>
+    </div>
+  </div>
+
+  <button id="start-btn">🎮 Start Game</button>
+</div>
+
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+const W = canvas.width, H = canvas.height;
+const PADDLE_W = 12, PADDLE_H = 80, BALL_R = 7;
+
+// Difficulty configs: aiSpeed (px/frame), aiError (target offset px), ballSpeed, maxBall
+const DIFF = {
+  easy:   { aiSpeed: 2.8, aiError: 35, ballSpeed: 4.0, maxBall: 10 },
+  medium: { aiSpeed: 4.2, aiError: 12, ballSpeed: 4.5, maxBall: 12 },
+  hard:   { aiSpeed: 6.4, aiError: 2,  ballSpeed: 5.2, maxBall: 14 },
+};
+
+let selectedDiff = 'easy';
+let winScore = 7;
+let animId;
+
+const state = {
+  player: { y: H/2 - PADDLE_H/2, score: 0 },
+  ai:     { y: H/2 - PADDLE_H/2, score: 0, errOffset: 0 },
+  ball:   { x: W/2, y: H/2, vx: 0, vy: 0, trail: [] },
+  keys:   {}
+};
+
+function resetBall(dir) {
+  const cfg = DIFF[selectedDiff];
+  state.ball.x = W/2; state.ball.y = H/2;
+  const a = (Math.random() * 50 - 25) * Math.PI / 180;
+  state.ball.vx = dir * cfg.ballSpeed * Math.cos(a);
+  state.ball.vy = cfg.ballSpeed * Math.sin(a);
+  state.ball.trail = [];
+  state.ai.errOffset = (Math.random() * 2 - 1) * cfg.aiError;
+}
+
+function update() {
+  const b = state.ball, p = state.player, ai = state.ai;
+  const cfg = DIFF[selectedDiff];
+
+  // Player move
+  if (state.keys['ArrowUp'])   p.y -= 7;
+  if (state.keys['ArrowDown']) p.y += 7;
+  p.y = Math.max(0, Math.min(H - PADDLE_H, p.y));
+
+  // AI move with imperfect tracking
+  if (Math.random() < 0.018) {
+    ai.errOffset = (Math.random() * 2 - 1) * cfg.aiError;
+  }
+  const aiTarget = b.y + ai.errOffset;
+  const diff = aiTarget - (ai.y + PADDLE_H / 2);
+  if (Math.abs(diff) > 4) ai.y += Math.sign(diff) * Math.min(cfg.aiSpeed, Math.abs(diff));
+  ai.y = Math.max(0, Math.min(H - PADDLE_H, ai.y));
+
+  // Trail
+  b.trail.push({ x: b.x, y: b.y });
+  if (b.trail.length > 8) b.trail.shift();
+
+  b.x += b.vx; b.y += b.vy;
+
+  // Wall bounce
+  if (b.y - BALL_R <= 0) { b.y = BALL_R; b.vy *= -1; }
+  if (b.y + BALL_R >= H) { b.y = H - BALL_R; b.vy *= -1; }
+
+  // Player paddle
+  const pX = 20;
+  if (b.x - BALL_R <= pX + PADDLE_W && b.vx < 0 && b.y >= p.y && b.y <= p.y + PADDLE_H) {
+    const hit = (b.y - (p.y + PADDLE_H/2)) / (PADDLE_H/2);
+    const spd = Math.sqrt(b.vx*b.vx + b.vy*b.vy) * 1.05;
+    b.vx = Math.min(spd * Math.cos(hit * 60 * Math.PI/180), cfg.maxBall);
+    b.vy = spd * Math.sin(hit * 60 * Math.PI/180);
+    b.x = pX + PADDLE_W + BALL_R;
+  }
+
+  // AI paddle
+  const aiX = W - 20 - PADDLE_W;
+  if (b.x + BALL_R >= aiX && b.vx > 0 && b.y >= ai.y && b.y <= ai.y + PADDLE_H) {
+    const hit = (b.y - (ai.y + PADDLE_H/2)) / (PADDLE_H/2);
+    const spd = Math.sqrt(b.vx*b.vx + b.vy*b.vy) * 1.03;
+    b.vx = -Math.min(spd * Math.cos(hit * 60 * Math.PI/180), cfg.maxBall);
+    b.vy = spd * Math.sin(hit * 60 * Math.PI/180);
+    b.x = aiX - BALL_R;
+  }
+
+  // Score
+  if (b.x - BALL_R < 0) {
+    ai.score++; updateScore();
+    if (ai.score >= winScore) { endGame('Computer Wins!'); return; }
+    resetBall(1);
+  }
+  if (b.x + BALL_R > W) {
+    p.score++; updateScore();
+    if (p.score >= winScore) { endGame('You Win!'); return; }
+    resetBall(-1);
+  }
+}
+
+function draw() {
+  ctx.fillStyle = '#0a2a0a';
+  ctx.fillRect(0, 0, W, H);
+
+  ctx.strokeStyle = '#1a5a2a';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([10, 10]);
+  ctx.beginPath(); ctx.moveTo(W/2, 0); ctx.lineTo(W/2, H); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.beginPath(); ctx.arc(W/2, H/2, 60, 0, Math.PI*2); ctx.stroke();
+
+  const b = state.ball;
+  b.trail.forEach((pt, i) => {
+    ctx.beginPath();
+    ctx.arc(pt.x, pt.y, BALL_R * (i/b.trail.length), 0, Math.PI*2);
+    ctx.fillStyle = `rgba(0,212,255,${(i/b.trail.length)*0.4})`;
+    ctx.fill();
+  });
+
+  // Ball
+  ctx.beginPath(); ctx.arc(b.x, b.y, BALL_R, 0, Math.PI*2);
+  ctx.fillStyle='#fff'; ctx.shadowColor='#fff'; ctx.shadowBlur=15;
+  ctx.fill(); ctx.shadowBlur=0;
+
+  // Player paddle
+  ctx.fillStyle='#00d4ff'; ctx.shadowColor='#00d4ff'; ctx.shadowBlur=20;
+  rr(20, state.player.y, PADDLE_W, PADDLE_H, 3); ctx.fill(); ctx.shadowBlur=0;
+
+  // AI paddle
+  ctx.fillStyle='#ff4060'; ctx.shadowColor='#ff4060'; ctx.shadowBlur=20;
+  rr(W-20-PADDLE_W, state.ai.y, PADDLE_W, PADDLE_H, 3); ctx.fill(); ctx.shadowBlur=0;
+}
+
+function rr(x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y); ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+  ctx.lineTo(x+w,y+h-r); ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+  ctx.lineTo(x+r,y+h); ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+  ctx.lineTo(x,y+r); ctx.quadraticCurveTo(x,y,x+r,y); ctx.closePath();
+}
+
+function gameLoop() { update(); draw(); animId = requestAnimationFrame(gameLoop); }
+
+function updateScore() {
+  document.getElementById('score-player').textContent = state.player.score;
+  document.getElementById('score-ai').textContent     = state.ai.score;
+}
+
+function startGame() {
+  cancelAnimationFrame(animId);
+  state.player.y = H/2 - PADDLE_H/2; state.player.score = 0;
+  state.ai.y     = H/2 - PADDLE_H/2; state.ai.score     = 0;
+  updateScore();
+  document.getElementById('meta-diff').textContent = selectedDiff.toUpperCase();
+  document.getElementById('meta-pts').textContent  = `first to ${winScore} pts`;
+  document.getElementById('result-line').textContent = '';
+  resetBall(Math.random() > .5 ? 1 : -1);
+  document.getElementById('overlay').style.display = 'none';
+  gameLoop();
+}
+
+function endGame(msg) {
+  cancelAnimationFrame(animId);
+  const overlay = document.getElementById('overlay');
+  const won = msg.includes('You');
+  overlay.querySelector('h2').textContent = won ? '🎉 You Win! 🎉' : '🤖 Computer Wins!';
+  document.getElementById('result-line').textContent =
+    `Score: You ${state.player.score}  —  Computer ${state.ai.score}`;
+  document.getElementById('start-btn').textContent = '🔄 Play Again';
+  overlay.style.display = 'flex';
+}
+
+// Button group logic
+document.getElementById('diff-group').addEventListener('click', e => {
+  const btn = e.target.closest('.opt-btn'); if (!btn) return;
+  selectedDiff = btn.dataset.diff;
+  document.querySelectorAll('#diff-group .opt-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+});
+
+document.getElementById('pts-group').addEventListener('click', e => {
+  const btn = e.target.closest('.opt-btn'); if (!btn) return;
+  winScore = parseInt(btn.dataset.pts, 10);
+  document.querySelectorAll('#pts-group .opt-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+});
+
+document.addEventListener('keydown', e => {
+  state.keys[e.key] = true;
+  if (e.key === 'ArrowUp' || e.key === 'ArrowDown') e.preventDefault();
+});
+document.addEventListener('keyup', e => { state.keys[e.key] = false; });
+
+document.getElementById('start-btn').addEventListener('click', startGame);
+</script>
+</body>
+</html>
